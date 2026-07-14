@@ -27,13 +27,13 @@ type Slide = {
 // Slots 0-3 have real destinations today; the rest are reserved
 // placeholders for pages that haven't been built yet.
 const SLIDES: Slide[] = [
-  { href: `${BASE_PATH}/pages/index.html`, external: true, thumbnail: { kind: "video", src: `${BASE_PATH}/thumbs-vid/principle.mp4`, poster: `${BASE_PATH}/thumbs/principle.jpg`, heading: ["새로운 시대를 위한", "새로운 기준"] } },
+  { href: `${BASE_PATH}/pages/index.html`, external: true, thumbnail: { kind: "video", src: `${BASE_PATH}/pages/assets/intro-hero-bg.mp4`, poster: `${BASE_PATH}/thumbs/principle.jpg`, heading: ["새로운 시대를 위한", "새로운 기준"] } },
   { href: `${BASE_PATH}/pages/saegyeodeutda.html`, external: true, thumbnail: { kind: "image", src: `${BASE_PATH}/thumbs/sensing.jpg`, heading: ["어떤 형태의 의도든 완벽하게", "항상 준비되어 있으니까"] } },
   { href: `${BASE_PATH}/pages/smeureulda.html`, external: true, thumbnail: { kind: "image", src: `${BASE_PATH}/thumbs/smeur.jpg`, heading: ["낯선 곳이더라도 자연스럽게", "경계를 건너뛰는 유려함"] } },
-  { href: "/principles", thumbnail: { kind: "video", src: `${BASE_PATH}/thumbs-vid/focus.mp4`, poster: `${BASE_PATH}/thumbs/focus.jpg`, heading: ["When you need", "Focus"] } },
+  { href: "/principles", thumbnail: { kind: "video", src: `${BASE_PATH}/hero/focus.mp4`, poster: `${BASE_PATH}/thumbs/focus.jpg`, heading: ["When you need", "Focus"] } },
   { href: "/service2", thumbnail: { kind: "image", src: `${BASE_PATH}/thumbs/service2.jpg`, heading: ["기기에는 흔적 없이", "내 맥락은 끊김 없이"] } },
-  { href: "/service3", thumbnail: { kind: "video", src: `${BASE_PATH}/thumbs-vid/service3.mp4`, poster: `${BASE_PATH}/thumbs/service3.jpg`, heading: ["당신다운 경험의 시작"] } },
-  { href: "/negotiation", thumbnail: { kind: "video", src: `${BASE_PATH}/thumbs-vid/negotiation.mp4`, poster: `${BASE_PATH}/thumbs/negotiation.jpg`, heading: ["당신이 원하는 그대로", "가장 자연스럽게"] } },
+  { href: "/service3", thumbnail: { kind: "video", src: `${BASE_PATH}/service3/statement-bg.mp4`, poster: `${BASE_PATH}/thumbs/service3.jpg`, heading: ["당신다운 경험의 시작"] } },
+  { href: "/negotiation", thumbnail: { kind: "video", src: `${BASE_PATH}/negotiation/statement-bg.mp4`, poster: `${BASE_PATH}/thumbs/negotiation.jpg`, heading: ["당신이 원하는 그대로", "가장 자연스럽게"] } },
   {},
 ];
 
