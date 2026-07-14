@@ -173,11 +173,11 @@
 }
 
 .cardSide:first-child {
-  margin-inline-end: -4.5vw;
+  margin-inline-end: 0;
 }
 
 .cardSide:last-child {
-  margin-inline-start: -4.5vw;
+  margin-inline-start: 0;
 }
 
 .enterButton {
