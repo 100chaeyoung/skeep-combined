@@ -28,6 +28,21 @@ type Slide = {
 // placeholders for pages that haven't been built yet.
 const SLIDES: Slide[] = [
   {
+    href: `${BASE_PATH}/pages/index.html`,
+    external: true,
+    thumbnail: { kind: "video", src: `${BASE_PATH}/pages/assets/intro-hero-bg.mp4`, heading: ["프린시플"] },
+  },
+  {
+    href: `${BASE_PATH}/pages/saegyeodeutda.html`,
+    external: true,
+    thumbnail: { kind: "video", src: `${BASE_PATH}/pages/assets/sensing-hero-bg.mp4`, heading: ["새겨듣다"] },
+  },
+  {
+    href: `${BASE_PATH}/pages/smeureulda.html`,
+    external: true,
+    thumbnail: { kind: "image", src: `${BASE_PATH}/pages/assets/smeur-cover-bg.jpg`, heading: ["스며들다"] },
+  },
+  {
     href: "/principles",
     thumbnail: { kind: "video", src: `${BASE_PATH}/hero/focus.mp4`, heading: ["When you need", "Focus"] },
   },
@@ -50,21 +65,6 @@ const SLIDES: Slide[] = [
       src: `${BASE_PATH}/negotiation/statement-bg.mp4`,
       heading: ["당신이 원하는 그대로", "가장 자연스럽게"],
     },
-  },
-  {
-    href: `${BASE_PATH}/pages/index.html`,
-    external: true,
-    thumbnail: { kind: "color", color: "#0E1825", heading: ["프린시플"] },
-  },
-  {
-    href: `${BASE_PATH}/pages/saegyeodeutda.html`,
-    external: true,
-    thumbnail: { kind: "color", color: "#111820", heading: ["새겨듣다"] },
-  },
-  {
-    href: `${BASE_PATH}/pages/smeureulda.html`,
-    external: true,
-    thumbnail: { kind: "color", color: "#E3EBF2", heading: ["스며들다"] },
   },
   {},
 ];
