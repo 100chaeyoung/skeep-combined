@@ -101,7 +101,7 @@ function AmbientBackdrop({ thumbnail, slideKey }: { thumbnail?: Thumbnail; slide
         key={slideKey}
         className={styles.ambientBackdrop}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
+        animate={{ opacity: 0.78 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
         aria-hidden
