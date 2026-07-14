@@ -51,7 +51,7 @@ function VideoThumb({ src, poster }: { src: string; poster?: string }) {
       )}
       <video
         className={styles.thumbnailMedia}
-        style={{ opacity: ready ? 1 : 0, transition: "opacity 0.25s ease" }}
+        style={{ opacity: ready ? 1 : 0, transition: "opacity 0.12s ease" }}
         src={src}
         preload="auto"
         autoPlay
@@ -90,33 +90,29 @@ function SlideThumbnail({ thumbnail }: { thumbnail?: Thumbnail }) {
   );
 }
 
-// Crossfades + slides the incoming/outgoing thumbnail so a slide change
-// reads as a swipe transition instead of an instant content swap. While
-// scrubbing the dot bar, the offset/duration shrink so rapid-fire index
-// changes read as a quick flip through frames rather than overlapping slides.
+// Crossfade only: the stage owns all horizontal movement and its drag spring.
+// Giving the thumbnail another x transition makes the media lag behind the
+// card frame after release, so the card and its content no longer feel like
+// one physical object.
 function CardContent({
   slideKey,
   thumbnail,
-  direction,
   fast,
 }: {
   slideKey: string;
   thumbnail?: Thumbnail;
-  direction: number;
   fast?: boolean;
 }) {
-  const offset = fast ? 8 : 18;
-  const duration = fast ? 0.12 : 0.36;
+  const duration = fast ? 0.06 : 0.14;
   return (
-    <AnimatePresence initial={false} custom={direction}>
+    <AnimatePresence initial={false}>
       <motion.div
         key={slideKey}
         className={styles.thumbnailAnimWrap}
-        custom={direction}
-        initial={{ opacity: 0, x: `${direction * offset}%` }}
-        animate={{ opacity: 1, x: "0%" }}
-        exit={{ opacity: 0, x: `${direction * -offset}%` }}
-        transition={{ duration, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration, ease: "easeOut" }}
       >
         <SlideThumbnail thumbnail={thumbnail} />
       </motion.div>
@@ -170,9 +166,6 @@ function readStoredActive() {
 
 export function Hub() {
   const [active, setActive] = useState(readStoredActive);
-  // +1 means the slide entering is coming from the right (swiped left, "next");
-  // -1 means it's coming from the left ("prev"). Drives CardContent's slide direction.
-  const [direction, setDirection] = useState(1);
   const total = SLIDES.length;
 
   // Persisted right at the point of each interaction (not reactively via a
@@ -192,17 +185,14 @@ export function Hub() {
   const next = SLIDES[nextIndex];
 
   function goNext() {
-    setDirection(1);
     setActiveAndPersist(mod(active + 1, total));
   }
 
   function goPrev() {
-    setDirection(-1);
     setActiveAndPersist(mod(active - 1, total));
   }
 
   function goTo(i: number) {
-    setDirection(i >= active ? 1 : -1);
     setActiveAndPersist(i);
   }
 
@@ -234,7 +224,6 @@ export function Hub() {
     const i = indexFromClientX(clientX);
     setActive((a) => {
       if (i === a) return a;
-      setDirection(i >= a ? 1 : -1);
       sessionStorage.setItem(ACTIVE_SLIDE_KEY, String(i));
       return i;
     });
@@ -330,7 +319,6 @@ export function Hub() {
           <CardContent
             slideKey={prev.href ?? `slot-${prevIndex}`}
             thumbnail={prev.thumbnail}
-            direction={direction}
             fast={isScrubbing}
           />
         </button>
@@ -345,7 +333,6 @@ export function Hub() {
             <CardContent
               slideKey={current.href}
               thumbnail={current.thumbnail}
-              direction={direction}
               fast={isScrubbing}
             />
             <span className={styles.enterButton}>
@@ -362,7 +349,6 @@ export function Hub() {
             <CardContent
               slideKey={current.href}
               thumbnail={current.thumbnail}
-              direction={direction}
               fast={isScrubbing}
             />
             <span className={styles.enterButton}>
@@ -374,7 +360,6 @@ export function Hub() {
             <CardContent
               slideKey={`slot-${active}`}
               thumbnail={current.thumbnail}
-              direction={direction}
               fast={isScrubbing}
             />
             <span className={`${styles.enterButton} ${styles.enterButtonDisabled}`} aria-hidden="true">
@@ -392,7 +377,6 @@ export function Hub() {
           <CardContent
             slideKey={next.href ?? `slot-${nextIndex}`}
             thumbnail={next.thumbnail}
-            direction={direction}
             fast={isScrubbing}
           />
         </button>
