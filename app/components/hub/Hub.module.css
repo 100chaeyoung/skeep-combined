@@ -79,7 +79,7 @@
   flex-shrink: 0;
   aspect-ratio: 16 / 9;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.2);
+  background: #3c3c3e;
   overflow: hidden;
 }
 
@@ -163,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: clamp(8px, 0.8vw, 16px);
-  background: #29292b;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
   padding: clamp(10px, 1.1vw, 18px) clamp(14px, 1.6vw, 28px);
   z-index: 1;
