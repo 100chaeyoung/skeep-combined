@@ -1,6 +1,6 @@
 .section {
   background: var(--color-bg);
-  padding: clamp(56px, 8vw, 84px) var(--edge-padding);
+  padding: clamp(120px, 16vw, 200px) var(--edge-padding) clamp(56px, 8vw, 84px);
   display: flex;
   flex-direction: column;
 }
