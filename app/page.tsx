@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Hub } from "./components/hub/Hub";
-import { Footer } from "./components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "SKEEP",
@@ -8,10 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return (
-    <main>
-      <Hub />
-      <Footer />
-    </main>
-  );
+  return <Hub />;
 }
