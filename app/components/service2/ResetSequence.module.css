@@ -5,17 +5,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(48px, 8vw, 96px);
   padding: clamp(56px, 8vw, 84px) var(--edge-padding);
-}
-
-.heading {
-  max-width: 900px;
-  font-size: clamp(24px, 4vw, 54px);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.3;
-  text-align: center;
 }
 
 .scramble {
