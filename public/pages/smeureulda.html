@@ -377,7 +377,7 @@
        Parsing Intro heading below — see updateWordScene(). ── */
     .sec-word-morph-scene {
       position: relative;
-      height: 220vh;
+      height: 140vh;
       background: #fff;
     }
     .word-scene-sticky {
@@ -423,10 +423,25 @@
       font-variation-settings: 'wght' 600;
       transition: font-variation-settings .32s cubic-bezier(.22, 1, .36, 1);
     }
+    /* Pixel-particle "Parsing" (Originkit Pixel Drift 포팅) */
+    .parsing-particle-wrap {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .parsing-particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
 
     /* ── 6. PARSING INTRO ── */
     .sec-parsing-intro {
-      background: #fff; width: 100%; padding: clamp(56px, 8vw, 116px) var(--edge-padding);
+      background: #fff; width: 100%;
+      padding: 40vh var(--edge-padding) clamp(80px, 12vh, 200px);
       display: flex; align-items: flex-start; justify-content: space-between; gap: 48px;
     }
     .parsing-num {
@@ -473,10 +488,7 @@
       overflow: hidden;
       margin-left: 0;
       margin-right: 0;
-      background: linear-gradient(180deg,
-        #FF267C 0%,
-        #FF267C 68%,
-        #FF60A0 100%);
+      background: #FF267C;
       isolation: isolate;
     }
     .parsing-detail-video {
@@ -552,8 +564,9 @@
     /* ── 8. SKEEP AI™ BANNER ── */
     .sec-ai-banner.fi { transition: opacity 1.5s ease, transform 1.5s ease; }
     .sec-ai-banner {
+      position: relative;
       width: min(calc(100% - (var(--edge-padding) * 2)), 1800px);
-      min-height: clamp(190px, 25vw, 360px);
+      min-height: clamp(280px, 31vw, 480px);
       margin: 0 auto clamp(56px, 8vw, 116px);
       padding: clamp(26px, 3.4vw, 56px) clamp(28px, 4vw, 64px);
       display: flex;
@@ -562,8 +575,19 @@
       gap: 32px;
       border-radius: clamp(14px, 1.7vw, 28px);
       overflow: hidden;
-      background: #000 url('assets/pc_main_image-smeur-banner.png') center center / cover no-repeat;
+      background: #000;
     }
+    /* 스스로 움직이는 커스텀 커서 (Skeep) */
+    .ai-cursor-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+    .ai-cursor-arrow { position: absolute; top: 0; left: 0; width: 50px; height: 50px;
+      transform-origin: 0% 0%; will-change: transform; }
+    .ai-cursor-arrow svg { display: block; overflow: visible; width: 50px; height: 50px; }
+    .ai-cursor-label { position: absolute; top: 0; left: 0;
+      background: #fff; color: #000; border-radius: 999px;
+      padding: 9px 18px; font-size: 21px; font-weight: 600; line-height: 1.1;
+      letter-spacing: 0.1px; white-space: nowrap; transform-origin: 0% 50%;
+      box-shadow: 0 5px 16px rgba(0,0,0,0.24), 0 1px 3px rgba(0,0,0,0.14);
+      will-change: transform; }
     .ai-name {
       font-size: clamp(28px,3.2vw,56px);
       font-weight: 700;
@@ -1088,9 +1112,9 @@
 <!-- ══ 5. PARSING LETTER WAVE (scroll-morphs into the Parsing Intro heading) ══ -->
 <section class="sec-word-morph-scene" data-word-scene>
   <div class="word-scene-sticky">
-    <p class="parsing-wave" data-parsing-wave aria-label="Parsing">
-      <span style="--i:0">P</span><span style="--i:1">a</span><span style="--i:2">r</span><span style="--i:3">s</span><span style="--i:4">i</span><span style="--i:5">n</span><span style="--i:6">g</span>
-    </p>
+    <div class="parsing-particle-wrap" data-parsing-wave aria-label="Parsing">
+      <canvas class="parsing-particle-canvas"></canvas>
+    </div>
   </div>
 </section>
 
@@ -1821,6 +1845,9 @@
       next.textContent = mlWords[(mlIndex + 2) % mlWords.length];
       next.setAttribute('aria-hidden', 'true');
       mlCarousel.appendChild(next);
+      // 화면 밖 오른쪽 시작 위치를 먼저 렌더링해야 다음 프레임의
+      // is-right 변경이 실제 좌측 이동 트랜지션으로 인식된다.
+      void next.offsetWidth;
 
       requestAnimationFrame(() => {
         mlSlots.left.className = 'ml-slot is-out-left';
@@ -1874,10 +1901,13 @@
     }
     const numRider = makeFixedRider(targetNum);
     const descRider = makeFixedRider(targetDesc);
+    const bigRider = makeFixedRider(targetBig);   // 제목도 착지 지점에 고정(아래에서 안 올라오게)
     const waveHome = document.createComment('wave-home');
     wave.parentNode.insertBefore(waveHome, wave);
 
     let wsTicking = false;
+    let sucked = false;              // 파티클 "빨려들어감" one-shot 발동 여부
+    let suckTimer = null;
     const clamp01 = (v) => Math.max(0, Math.min(1, v));
     const smoothstep = (e0, e1, x) => {
       const t = clamp01((x - e0) / (e1 - e0));
@@ -1916,6 +1946,19 @@
       el.style.transform = `translateY(${(1 - t) * 16}px)`;
     }
 
+    // 고정(fixed)됐던 제목을 원래 문서 흐름(home)으로 되돌린다.
+    function releaseBig() {
+      targetBig.style.transition = '';
+      if (targetBig.parentNode !== bigRider.home.parentNode) {
+        bigRider.home.parentNode.insertBefore(targetBig, bigRider.home);
+      }
+      bigRider.home.style.display = 'none';
+      targetBig.style.position = '';
+      targetBig.style.left = '';
+      targetBig.style.top = '';
+      targetBig.style.margin = '';
+    }
+
     function updateWordScene() {
       wsTicking = false;
       // Drive everything off the intro heading's live position instead of
@@ -1941,51 +1984,63 @@
         targetDesc.style.transform = 'none';
       }
 
-      if (morphP <= 0) {
-        wave.classList.remove('is-morphing');
-        if (wave.parentNode !== waveHome.parentNode) {
-          waveHome.parentNode.insertBefore(wave, waveHome);
+      // 스크롤 연동 이동이 아니라, 인트로가 다가오면 파티클 텍스트가
+      // 한 번에 "슉" 빨려들어가는 one-shot 트랜지션.
+      const suckTrigger = window.innerHeight * 1.0;   // 파티클이 화면 벗어나기 전에 발동
+      if (!sucked && introRect.top <= suckTrigger) {
+        sucked = true;
+        window.__parsingSuck = true;   // 이동 중 파티클 형성 유지(흩어짐 방지)
+        // 캔버스를 body로 고정 후, 형태 유지한 채 제목 자리로 이동(translate)+축소(scale)+페이드.
+        if (wave.parentNode !== document.body) document.body.appendChild(wave);
+        wave.style.position = 'fixed';
+        wave.style.left = '0'; wave.style.top = '0';
+        wave.style.width = '100vw'; wave.style.height = '100vh';
+        wave.style.pointerEvents = 'none';
+        wave.style.transformOrigin = 'center center';
+        wave.style.transition = 'none';
+        wave.style.transform = 'translate(0px, 0px) scale(1)';
+        wave.style.opacity = '1';
+        void wave.offsetWidth;   // reflow → 트랜지션 시작점 고정
+        {
+          const bigFs = parseFloat(getComputedStyle(targetBig).fontSize);
+          const fitFs = window.__parsingFitFs || bigFs;
+          const tx = (bigRider.left + bigRider.w / 2) - window.innerWidth / 2;
+          const ty = (bigRider.topOffset + bigRider.h / 2) - window.innerHeight / 2;
+          wave.style.transition = 'transform .62s cubic-bezier(.5,0,.75,.2), opacity .62s ease-in';
+          wave.style.transform = `translate(${tx}px, ${ty}px) scale(${bigFs / fitFs})`;
+          wave.style.opacity = '0';
         }
-        wave.style.position = '';
-        wave.style.left = '';
-        wave.style.top = '';
-        wave.style.transform = '';
-        wave.style.fontSize = '';
-        wave.style.opacity = '';
+        // 제목을 착지 지점에 고정(아래에서 안 올라오게) + 빨려듦 완료에 맞춰 그 자리에서 페이드인
+        bigRider.home.style.display = 'block';
+        bigRider.home.style.width = bigRider.w + 'px';
+        bigRider.home.style.height = bigRider.h + 'px';
+        if (targetBig.parentNode !== document.body) document.body.appendChild(targetBig);
+        targetBig.style.position = 'fixed';
+        targetBig.style.margin = '0';
+        targetBig.style.left = bigRider.left + 'px';
+        targetBig.style.top = bigRider.topOffset + 'px';
+        targetBig.style.transition = 'opacity .4s ease';
+        targetBig.style.opacity = '0';
+        clearTimeout(suckTimer);
+        suckTimer = setTimeout(() => { if (sucked) targetBig.style.opacity = '1'; }, 300);
+      } else if (sucked && introRect.top > window.innerHeight * 1.05) {
+        // 다시 위로 스크롤 → 리셋 (캔버스·제목 원위치, 숨김)
+        sucked = false;
+        window.__parsingSuck = false;
+        clearTimeout(suckTimer);
+        if (wave.parentNode !== waveHome.parentNode) waveHome.parentNode.insertBefore(wave, waveHome);
+        wave.style.transition = '';
+        wave.style.position = ''; wave.style.left = ''; wave.style.top = '';
+        wave.style.width = ''; wave.style.height = '';
+        wave.style.transform = ''; wave.style.transformOrigin = '';
+        wave.style.opacity = ''; wave.style.pointerEvents = '';
+        releaseBig();
         targetBig.style.opacity = 0;
-      } else {
-        wave.classList.add('is-morphing');
-        // The sticky's own overflow:hidden clips a fixed-position child once
-        // its ancestor has scrolled away, so move the wave to <body> for the
-        // duration of the morph.
-        if (wave.parentNode !== document.body) {
-          document.body.appendChild(wave);
-        }
-        // Measure the real heading live so this stays correct at any
-        // viewport size: its offset from the intro section's own top edge
-        // never changes with scroll, so that offset tells us exactly where
-        // it will sit once the intro section reaches the top of the screen.
-        const bigRect = targetBig.getBoundingClientRect();
-        const bigFontSize = parseFloat(getComputedStyle(targetBig).fontSize);
-        const targetCenterX = bigRect.left + bigRect.width / 2;
-        const targetCenterY = (bigRect.top - introRect.top) + bigRect.height / 2;
-
-        const cx = lerp(window.innerWidth / 2, targetCenterX, morphP);
-        const cy = lerp(window.innerHeight / 2, targetCenterY, morphP);
-        const fs = lerp(startFontSize, bigFontSize, morphP);
-
-        wave.style.left = `${cx}px`;
-        wave.style.top = `${cy}px`;
-        wave.style.transform = 'translate(-50%, -50%)';
-        wave.style.fontSize = `${fs}px`;
-
-        // Only swap to the real static heading once it has actually
-        // scrolled into that same spot — swapping earlier (as soon as the
-        // morph's own progress hits 1) leaves a blank gap, since the real
-        // element can still be off-screen below at that point.
-        const handOff = morphP >= 0.999 && arrived;
-        wave.style.opacity = handOff ? 0 : 1;
-        targetBig.style.opacity = handOff ? 1 : 0;
+      }
+      if (arrived) {   // 인트로 도착 → 제목을 정상 흐름으로 되돌려 제자리 확정
+        releaseBig();
+        targetBig.style.opacity = 1;
+        targetBig.style.transform = 'none';
       }
     }
 
@@ -2140,6 +2195,270 @@
     window.addEventListener('scroll', requestLogicTransitionUpdate, { passive: true });
     window.addEventListener('resize', requestLogicTransitionUpdate);
   }
+</script>
+<script>
+/* ── "Parsing" Pixel-Particle (Originkit Pixel Drift 포팅, 검정-핑크) ──
+   텍스트를 픽셀 파티클 필드로 그린다. 스크롤로 화면에 들어오면 바깥에서
+   날아와 글자를 형성하고, 커서가 지나가면 근처 픽셀이 밀려난다. */
+(() => {
+  const wrap = document.querySelector('[data-parsing-wave]');
+  const canvas = wrap && wrap.querySelector('.parsing-particle-canvas');
+  const ctx = canvas && canvas.getContext('2d', { alpha: true });
+  if (!wrap || !canvas || !ctx) return;
+
+  const TEXT = 'Parsing';
+  const PALETTE = ['#0e1825', '#ff0b6c', '#0e1825'];   // 검정-핑크
+  const DRAW = 4.5;          // 픽셀 한 변(px)
+  const STRIDE = 5;          // 샘플 간격(작을수록 촘촘)
+  const MOUSE_RADIUS = 100;
+  const MOUSE_FORCE = 26;
+  const FORM_MS = 950;
+  const FONTF = '"Pretendard Variable","Pretendard",system-ui,-apple-system,sans-serif';
+  const font = (s) => '700 ' + s + 'px ' + FONTF;
+
+  let count = 0;
+  let ox = new Float32Array(0), oy = ox, sx = ox, sy = ox, px = ox, py = ox, repX = ox, repY = ox;
+  let cIdx = new Uint8Array(0);
+  let cssW = 0, cssH = 0, dpr = 1, lastW = -1, lastH = -1;
+  let formVal = 0, lastT = null, hidden = true, reverse = false, suckP = 0;
+  const ptr = { x: -99999, y: -99999, active: false };
+  let pmx = -99999, pmy = -99999, mspeed = 0, smx = -99999, smy = -99999;
+
+  const fitFont = (m, maxW, maxH) => {
+    let lo = 8, hi = 420, best = 8;
+    for (let k = 0; k < 14; k++) {
+      const mid = (lo + hi) / 2;
+      m.font = font(mid);
+      const me = m.measureText(TEXT);
+      const w = me.width;
+      const h = (me.actualBoundingBoxAscent || mid * 0.8) + (me.actualBoundingBoxDescent || mid * 0.2);
+      if (w <= maxW && h <= maxH) { best = mid; lo = mid; } else { hi = mid; }
+    }
+    return Math.max(8, Math.floor(best));
+  };
+
+  const sample = () => {
+    if (cssW <= 0 || cssH <= 0) return;
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.floor(cssW * dpr));
+    off.height = Math.max(1, Math.floor(cssH * dpr));
+    const octx = off.getContext('2d', { willReadFrequently: true });
+    if (!octx) return;
+    octx.scale(dpr, dpr);
+    const fs = fitFont(octx, cssW * 0.62, cssH * 0.42);
+    window.__parsingFitFs = fs;   // morph 스케일 계산용 (updateWordScene)
+    octx.clearRect(0, 0, cssW, cssH);
+    octx.fillStyle = '#fff';
+    octx.font = font(fs);
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.fillText(TEXT, cssW / 2, cssH / 2);
+    const img = octx.getImageData(0, 0, Math.floor(cssW * dpr), Math.floor(cssH * dpr));
+    const data = img.data, iw = img.width;
+    const pts = [];
+    for (let y = 0; y < cssH; y += STRIDE) {
+      for (let x = 0; x < cssW; x += STRIDE) {
+        const idx = (Math.floor(y * dpr) * iw + Math.floor(x * dpr)) * 4 + 3;
+        if (data[idx] > 128) { pts.push(x, y); }
+      }
+    }
+    const n = pts.length / 2;
+    ox = new Float32Array(n); oy = new Float32Array(n);
+    sx = new Float32Array(n); sy = new Float32Array(n);
+    px = new Float32Array(n); py = new Float32Array(n);
+    repX = new Float32Array(n); repY = new Float32Array(n);
+    cIdx = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = pts[i * 2], y = pts[i * 2 + 1];
+      ox[i] = x; oy[i] = y;
+      const ang = Math.random() * Math.PI * 2;
+      const rad = Math.max(cssW, cssH) * (0.6 + Math.random() * 0.5);
+      const rx = cssW / 2 + Math.cos(ang) * rad, ry = cssH / 2 + Math.sin(ang) * rad;
+      sx[i] = rx; sy[i] = ry; px[i] = rx; py[i] = ry;
+      cIdx[i] = Math.floor(Math.random() * PALETTE.length);
+    }
+    count = n;
+    formVal = 0; lastT = null;
+  };
+
+  const resize = () => {
+    const r = wrap.getBoundingClientRect();
+    const w = Math.floor(r.width), h = Math.floor(r.height);
+    if (w <= 0 || h <= 0) return;
+    if (w === lastW && h === lastH) return;   // morph 중 재부모화로 크기 안 바뀌면 재샘플 금지(형성 리셋 방지)
+    lastW = w; lastH = h;
+    dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    cssW = w; cssH = h;
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sample();
+  };
+
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? cssW / rect.width : 1;
+    const scaleY = rect.height > 0 ? cssH / rect.height : 1;
+    const mx = (e.clientX - rect.left) * scaleX, my = (e.clientY - rect.top) * scaleY;
+    if (pmx > -9000) { const dx = mx - pmx, dy = my - pmy; mspeed = Math.sqrt(dx * dx + dy * dy); }
+    pmx = mx; pmy = my; ptr.x = mx; ptr.y = my; ptr.active = true;
+  });
+  const leave = () => { ptr.x = -99999; ptr.y = -99999; ptr.active = false; pmx = -99999; pmy = -99999; };
+  canvas.addEventListener('pointerleave', leave);
+  canvas.addEventListener('pointercancel', leave);
+
+  const io = new IntersectionObserver(([en]) => {
+    if (window.__parsingSuck) return;   // 빨려들어가는 중엔 형성 유지(흩어짐 방지)
+    if (en.isIntersecting) { reverse = false; hidden = false; }
+    else { reverse = true; }
+  }, { threshold: 0.1 });
+  io.observe(wrap);
+
+  const half = DRAW / 2;
+  const buckets = PALETTE.map(() => []);
+  const frame = () => {
+    ctx.clearRect(0, 0, cssW, cssH);
+    const now = performance.now();
+    const last = lastT == null ? now : lastT; lastT = now;
+    const dt = Math.min(64, Math.max(0, now - last));
+    // 제목 자리로 이동(CSS transform)하는 동안 파티클을 형성 상태로 유지(흩어짐 방지).
+    if (window.__parsingSuck) { reverse = false; hidden = false; }
+    const target = reverse ? 0 : 1;
+    if (FORM_MS <= 0) formVal = target;
+    else { const step = dt / FORM_MS; if (formVal < target) formVal = Math.min(target, formVal + step); else if (formVal > target) formVal = Math.max(target, formVal - step); }
+    if (reverse && formVal <= 0) hidden = true;
+    if (!hidden) {
+      const forming = formVal < 1;
+      const v = formVal;
+      const factor = forming ? (v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2) : 1;
+      const hitSpeed = mspeed; mspeed *= 0.88;
+      const active = !forming && ptr.active;
+      if (active) {
+        const lf = Math.max(0.08, 0.3 - hitSpeed * 0.006);
+        if (smx < -9000) { smx = ptr.x; smy = ptr.y; } else { smx += (ptr.x - smx) * lf; smy += (ptr.y - smy) * lf; }
+      } else { smx = -99999; smy = -99999; }
+      const mx = smx, my = smy;
+      const rc = Math.max(1, MOUSE_RADIUS), rcSq = rc * rc, rF = MOUSE_FORCE;
+      for (let b = 0; b < buckets.length; b++) buckets[b].length = 0;
+      for (let i = 0; i < count; i++) {
+        const oxi = ox[i], oyi = oy[i];
+        if (forming) {
+          px[i] = sx[i] + (oxi - sx[i]) * factor;
+          py[i] = sy[i] + (oyi - sy[i]) * factor;
+          buckets[cIdx[i]].push(i); continue;
+        }
+        let inZone = false;
+        if (active) {
+          const dx = oxi - mx, dy = oyi - my, dsq = dx * dx + dy * dy;
+          if (dsq > 0 && dsq < rcSq) {
+            const dist = Math.sqrt(dsq), nx = dx / dist, ny = dy / dist, fo = 1 - dist / rc;
+            const push = fo * hitSpeed * rF * 0.05;
+            repX[i] += nx * push; repY[i] += ny * push;
+            repX[i] += ((nx * (rc - dist)) - repX[i]) * 0.06;
+            repY[i] += ((ny * (rc - dist)) - repY[i]) * 0.06;
+            inZone = true;
+          }
+        }
+        if (!inZone) { repX[i] *= 0.97; repY[i] *= 0.97; }
+        px[i] = oxi + repX[i]; py[i] = oyi + repY[i];
+        buckets[cIdx[i]].push(i);
+      }
+      ctx.globalAlpha = forming ? Math.min(1, Math.max(0, factor)) : 1;
+      for (let b = 0; b < buckets.length; b++) {
+        const bk = buckets[b]; if (!bk.length) continue;
+        ctx.fillStyle = PALETTE[b];
+        for (let k = 0; k < bk.length; k++) { const i = bk[k]; ctx.fillRect(px[i] - half, py[i] - half, DRAW, DRAW); }
+      }
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(frame);
+  };
+
+  new ResizeObserver(() => resize()).observe(wrap);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+/* ── Skeep AI 배너: 스스로 움직이는 커스텀 커서 (Originkit UserCursor 포팅) ──
+   포인터 입력 없이 배너 안을 자동으로 배회한다. 화살표는 스냅 스프링,
+   라벨(Skeep)은 더 느린 스프링으로 뒤따르며 속도에 따라 살짝 기울어진다. */
+(() => {
+  const banner = document.querySelector('.sec-ai-banner');
+  if (!banner) return;
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return; // 터치기기 제외
+
+  const layer = document.createElement('div');
+  layer.className = 'ai-cursor-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  const arrow = document.createElement('div');
+  arrow.className = 'ai-cursor-arrow';
+  arrow.innerHTML = '<svg width="50" height="50" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3 L23 14 L14 16 L11 24 Z" fill="#ffffff" stroke="rgba(0,0,0,0.18)" stroke-width="0.6" stroke-linejoin="round"/></svg>';
+  const label = document.createElement('div');
+  label.className = 'ai-cursor-label';
+  label.textContent = 'Skeep';
+  layer.appendChild(label);   // 라벨을 화살표 뒤에
+  layer.appendChild(arrow);
+  banner.appendChild(layer);
+
+  const SIZE = 50;
+  const LBL_OX = SIZE * 0.82, LBL_OY = SIZE * 0.2 + 8;   // 라벨 오프셋
+
+  let W = 0, H = 0;
+  const measure = () => { const r = banner.getBoundingClientRect(); if (r.width > 0 && r.height > 0) { W = r.width; H = r.height; } };
+  measure();
+
+  // 목표 waypoint (배너 안 여백을 둔 영역에서 랜덤). 매번 크기 재측정 → 초기 0 크기 방지.
+  let tx = W * 0.5, ty = H * 0.4;
+  const newWaypoint = () => {
+    measure();
+    tx = W * (0.12 + Math.random() * 0.76);
+    ty = H * (0.16 + Math.random() * 0.6);
+  };
+  newWaypoint();
+  if (window.ResizeObserver) new ResizeObserver(measure).observe(banner);
+
+  // 스프링 상태 (화살표 / 라벨 / 기울기)
+  let ax = tx, ay = ty, avx = 0, avy = 0;
+  let lx = tx, ly = ty, lvx = 0, lvy = 0;
+  let rot = 0, rotv = 0;
+  let wait = 0, last = null;
+
+  // 반임플리싯 오일러 스프링 (framer 파라미터 근사): stiffness k, damping d, mass m
+  const step = (cur, vel, target, k, d, m, dt) => {
+    const a = ((target - cur) * k - vel * d) / m;
+    const nv = vel + a * dt;
+    return [cur + nv * dt, nv];
+  };
+
+  const frame = (now) => {
+    if (last == null) last = now;
+    const dt = Math.min(0.032, (now - last) / 1000); last = now;
+
+    // 목표 근처 도달 → 잠깐 멈췄다 새 목표 (대기 길게 → 여유롭게)
+    if (Math.hypot(tx - ax, ty - ay) < 18) {
+      wait += dt;
+      if (wait > 1.0 + Math.random() * 1.6) { wait = 0; newWaypoint(); }
+    }
+    // 화살표: 부드럽게(낮은 stiffness → 급하지 않게)
+    [ax, avx] = step(ax, avx, tx, 120, 25, 0.7, dt);
+    [ay, avy] = step(ay, avy, ty, 120, 25, 0.7, dt);
+    // 라벨: 더 느리게 뒤따름
+    [lx, lvx] = step(lx, lvx, ax, 78, 19, 0.8, dt);
+    [ly, lvy] = step(ly, lvy, ay, 78, 19, 0.8, dt);
+    // 기울기: 수평 속도 부호·크기 기반 (±16°)
+    const speed = Math.hypot(avx, avy);
+    const sign = avx === 0 ? 0 : (avx > 0 ? 1 : -1);
+    const targetRot = sign * Math.min(1, speed / 1200) * 16;
+    [rot, rotv] = step(rot, rotv, targetRot, 160, 22, 0.6, dt);
+
+    arrow.style.transform = `translate(${ax.toFixed(2)}px, ${ay.toFixed(2)}px)`;
+    label.style.transform = `translate(${(lx + LBL_OX).toFixed(2)}px, ${(ly + LBL_OY).toFixed(2)}px) rotate(${rot.toFixed(2)}deg)`;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  window.addEventListener('resize', measure);
+})();
 </script>
 <script src="../site-index.js"></script>
 </body>

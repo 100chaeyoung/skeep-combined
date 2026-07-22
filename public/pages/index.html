@@ -26,6 +26,8 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
+    /* requestAnimationFrame이 직접 스크롤을 보간하는 동안에는 native smooth를 끈다. */
+    html.sk-programmatic-scroll { scroll-behavior: auto; }
     html.hero-scroll-locked,
     html.hero-scroll-locked body {
       overscroll-behavior: none;
@@ -478,6 +480,15 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       clip-path: inset(30% 0%);  /* 풀 폭 밴드 → JS가 세로만 확장 (사진과 동일) */
       transition: clip-path .32s ease-out, opacity .5s ease;
     }
+    .skeeeep-ring-bg,
+    .skeeeep-video-bg {
+      will-change: clip-path, opacity;
+    }
+    /* 스크롤 진행률이 매 프레임 clip-path를 제어할 때 CSS transition이 뒤쫓지 않게 한다. */
+    .skeeeep-sticky.sk-scroll-transition .skeeeep-ring-bg,
+    .skeeeep-sticky.sk-scroll-transition .skeeeep-video-bg {
+      transition: none;
+    }
     .skeeeep-video-bg video {
       position: absolute;
       inset: 0;
@@ -552,7 +563,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       border-top: none;
     }
     .summary-row {
-      display: flex; gap: 72px; align-items: flex-start;
+      display: flex; gap: clamp(180px, 22vw, 460px); align-items: flex-start;
     }
     .summary-label {
       font-size: clamp(18px,2.2vw,32px); font-weight: 600; line-height: 1.3;
@@ -812,7 +823,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       text-align: center;
       transform-origin: center center;
       will-change: opacity, transform;
-      transition: color .45s ease, -webkit-text-fill-color .45s ease;
+      transition: color .45s ease, -webkit-text-fill-color .45s ease, font-size .45s ease;
     }
     .agent-title::before,
     .agent-title::after {
@@ -854,7 +865,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       color: rgba(255,255,255,.74);
       width: max-content;
       margin-top: 0;
-      transition: color .45s ease;
+      transition: color .45s ease, font-size .45s ease;
     }
     .agent-sub-line {
       display: block;
@@ -864,26 +875,38 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       opacity: 0;
       will-change: transform;
     }
+    /* negotiation 페이지 토글과 디자인 통일: 다크 컨테이너 + 흰 선택 카드 + 번호/라벨 */
     .pills-row   {
-      display: flex; gap: 12px;
+      display: flex; align-items: stretch;
+      gap: clamp(6px, 0.7vw, 12px);
+      background: #0e1825;
+      border-radius: 32px;
+      padding: clamp(9px, 1.1vw, 16px);
+      width: min(384px, 100%);
       margin-top: clamp(16px, 2.2vw, 40px);
       opacity: 0;
       transform: translateY(32px);
       will-change: opacity, transform;
     }
     .pill-sm {
-      background: #fff; border-radius: 100px;
-      padding: 12px 32px;
-      width: 190px;
-      font-size: 28px; font-weight: 600; line-height: 1.1;
-      letter-spacing: -0.03em; color: #111;
-      border: 0;
-      cursor: pointer;
-      font-family: inherit;
-      text-align: center;
-      transition: background .2s ease, color .2s ease;
+      flex: 1 1 0;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      background: #fff; border-radius: 12px;
+      padding: clamp(8px, 0.9vw, 14px) clamp(12px, 1.1vw, 18px);
+      border: 0; cursor: pointer; font-family: inherit; text-align: left;
+      transition: background .25s ease;
     }
-    .pill-sm.dim { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.55); }
+    .pill-num {
+      font-size: clamp(11px, 1.0vw, 17px); font-weight: 600;
+      letter-spacing: -0.02em; color: #ff0b6c;
+    }
+    .pill-label {
+      font-size: clamp(14px, 1.4vw, 28px); font-weight: 600;
+      line-height: 1.1; letter-spacing: -0.03em; color: #111;
+      transition: color .25s ease;
+    }
+    .pill-sm.dim { background: transparent; }
+    .pill-sm.dim .pill-label { color: #fff; }
     .agent-sticky.is-light .agent-title {
       color: #000;
       -webkit-text-fill-color: #000;
@@ -891,20 +914,17 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       align-self: flex-start;
       text-align: left;
       transform-origin: left center;   /* 축소 시 왼쪽 끝 고정 → 자막과 좌측 플러시 */
+      font-size: clamp(30px, 3.7vw, 54px);   /* 디테일 뷰: 토글 너비에 맞춰 축소 */
     }
     /* 디테일(밝은) 뷰에서는 텍스트 뒤 검정 딤 제거 */
     .agent-sticky.is-light .agent-left::before { display: none; }
     .agent-sticky.is-light .agent-sub {
       color: rgba(14,24,37,.62);
+      font-size: clamp(12px, 1.45vw, 21px);
     }
-    .agent-sticky.is-light .pill-sm {
-      background: #111;
-      color: #fff;
-    }
-    .agent-sticky.is-light .pill-sm.dim {
-      background: #e8e8e8;
-      color: rgba(14,24,37,.45);
-    }
+    /* 디테일 뷰: 제목↔설명, 설명↔토글 간격 축소 (설명·토글 위로) */
+    .agent-sticky.is-light .agent-title { margin-bottom: clamp(2px, 0.4vw, 8px); }
+    .agent-sticky.is-light .pills-row { margin-top: clamp(10px, 1.3vw, 22px); }
 
     /* ── Prism Grid 배경 (큐브 대체): hover 시 칸이 파스텔로 켜졌다 1s 페이드아웃 ── */
     .agent-grid-bg {
@@ -1007,10 +1027,10 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       gap: clamp(12px, 1.1vw, 18px);
       text-align: center;
       background:
-        radial-gradient(circle at 13px 13px, var(--card-dot) 0 4px, transparent 4.5px),
-        radial-gradient(circle at calc(100% - 13px) 13px, var(--card-dot) 0 4px, transparent 4.5px),
-        radial-gradient(circle at 13px calc(100% - 13px), var(--card-dot) 0 4px, transparent 4.5px),
-        radial-gradient(circle at calc(100% - 13px) calc(100% - 13px), var(--card-dot) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 16px 16px, var(--card-dot) 0 4px, transparent 4.5px),
+        radial-gradient(circle at calc(100% - 16px) 16px, var(--card-dot) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 16px calc(100% - 16px), var(--card-dot) 0 4px, transparent 4.5px),
+        radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), var(--card-dot) 0 4px, transparent 4.5px),
         var(--card-bg);
     }
     .principle-mini-title {
@@ -1048,11 +1068,11 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     .agent-q-col { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 16px; }
     .q-card {
       background:
-        radial-gradient(circle at 13px 13px, #FFFFFF 0 4px, transparent 4.5px),
-        radial-gradient(circle at calc(100% - 13px) 13px, #FFFFFF 0 4px, transparent 4.5px),
-        radial-gradient(circle at 13px calc(100% - 13px), #FFFFFF 0 4px, transparent 4.5px),
-        radial-gradient(circle at calc(100% - 13px) calc(100% - 13px), #FFFFFF 0 4px, transparent 4.5px),
-        #0B192B;
+        radial-gradient(circle at 16px 16px, rgba(14, 24, 37, .24) 0 4px, transparent 4.5px),
+        radial-gradient(circle at calc(100% - 16px) 16px, rgba(14, 24, 37, .24) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 16px calc(100% - 16px), rgba(14, 24, 37, .24) 0 4px, transparent 4.5px),
+        radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), rgba(14, 24, 37, .24) 0 4px, transparent 4.5px),
+        #E2E8EF;
       border-radius: 16px;
       padding: clamp(22px, 2.2vw, 30px) clamp(24px, 2.4vw, 34px); flex: 0 0 auto;
       border: none; cursor: pointer; overflow: hidden;
@@ -1061,7 +1081,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     .q-card .q-num {
       font-size: clamp(13px,1.4vw,24px); font-weight: 400; line-height: 1.2;
       letter-spacing: -0.02em; margin-bottom: 12px;
-      color: #FFFFFF;
+      color: #0E1825;
     }
     .q-head {
       display: flex; align-items: center; justify-content: space-between;
@@ -1071,16 +1091,16 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     .q-chevron { display: none; }
     .q-card .q-text {
       font-size: clamp(14px,1.4vw,26px); font-weight: 550; line-height: 1.35;
-      letter-spacing: -0.02em; color: #FFFFFF;
+      letter-spacing: -0.02em; color: #0E1825;
     }
     .q-answer {
       max-height: 0; opacity: 0; overflow: hidden; margin-top: 0;
       font-size: clamp(12px,1.15vw,17px); font-weight: 400; line-height: 1.5;
-      letter-spacing: -0.02em; color: #FFFFFF;
+      letter-spacing: -0.02em; color: #0E1825;
       transition: max-height .38s ease, opacity .28s ease, margin-top .28s ease;
     }
     .q-answer::before {
-      content: "A."; display: block; color: #FFFFFF; font-weight: 700;
+      content: "A."; display: block; color: #0E1825; font-weight: 700;
       font-size: clamp(12px,1.2vw,18px); letter-spacing: -0.02em; margin-bottom: 5px;
     }
     .q-card:hover .q-answer, .q-card.open .q-answer {
@@ -1272,18 +1292,23 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     .diagram-note {
       font-size: 20px; font-weight: 400; letter-spacing: -0.02em;
     }
+    /* 컨테이너를 레이어 카드 회색(#E7EAEE)에 맞춤 + 흰 선택 카드 + 핑크 번호 */
     .diagram-tabs {
-      background: #F4F8FC; border-radius: 0;
-      display: flex; gap: 6px; padding: 8px 10px;
+      background: #E7EAEE; border-radius: 32px;
+      display: flex; gap: clamp(6px, 0.7vw, 12px);
+      padding: clamp(9px, 1.1vw, 16px);
       border: none;
       margin-top: clamp(40px, 7vh, 96px);
     }
     .diagram-tab {
-      border-radius: 0; padding: 7px 16px; min-width: 148px;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      border-radius: 12px; padding: clamp(8px, 0.9vw, 14px) clamp(14px, 1.3vw, 22px);
+      min-width: 148px; background: transparent; text-align: left;
     }
-    .diagram-tab.active { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .diagram-tab .tab-n { font-size: 14px; font-weight: 700; color: #ff0b6c; line-height: 1.5; letter-spacing: 0.04em; text-transform: uppercase; }
-    .diagram-tab .tab-l { font-size: 21px; font-weight: 600; line-height: 1.5; letter-spacing: -0.03em; color: #111; }
+    .diagram-tab.active { background: #fff; box-shadow: 0 1px 5px rgba(14,24,37,0.08); }
+    .diagram-tab .tab-n { font-size: clamp(12px, 1.1vw, 16px); font-weight: 600; color: #ff0b6c; line-height: 1.4; letter-spacing: -0.02em; text-transform: none; }
+    .diagram-tab .tab-l { font-size: 21px; font-weight: 600; line-height: 1.3; letter-spacing: -0.03em; color: #6B7280; transition: color .2s ease; }
+    .diagram-tab.active .tab-l { color: #111; }
 
     /* ── 10. SYSTEM LAYERS ───────────────────────── */
     .sec-layers {
@@ -1329,6 +1354,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       padding: clamp(24px, 2.6vw, 40px) clamp(20px, 2.2vw, 36px) clamp(20px, 2vw, 34px);
       min-height: clamp(140px, 13vw, 224px);
       display: flex; flex-direction: column; gap: clamp(16px, 2vw, 28px);
+      align-items: center; text-align: center;   /* 가운데정렬 */
       border: 1px solid rgba(0,0,0,0.05);
       transition: opacity .28s ease, transform .28s ease, border-color .28s ease;
     }
@@ -1341,10 +1367,10 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     .layer-desc { font-size: clamp(13px,1.05vw,15px); font-weight: 400; line-height: 1.4; letter-spacing: -0.03em; color: rgba(0,0,0,.55); }
     /* 컬러 카드: 상시=파랑 / 활성=초록 / 데이터베이스=핑크 (Image #38 색상코드) */
     .layer-card[data-layer]            { background: #FFD1E2; border-color: transparent; }
-    /* 선택된(활성) 카드: 연핑크 배경 + 검정 텍스트 */
-    .layer-card[data-layer]:not(.faded) .layer-name { color: #111111; }
-    .layer-card[data-layer]:not(.faded) .layer-en   { color: rgba(17,17,17,.7); }
-    .layer-card[data-layer]:not(.faded) .layer-desc { color: rgba(17,17,17,.68); }
+    /* 선택된(활성) 카드: 연핑크 배경 + 핑크 텍스트 (#80 참조) */
+    .layer-card[data-layer]:not(.faded) .layer-name { color: #EA366E; }
+    .layer-card[data-layer]:not(.faded) .layer-en   { color: rgba(234,54,110,.82); }
+    .layer-card[data-layer]:not(.faded) .layer-desc { color: rgba(234,54,110,.78); }
     .layer-card[data-layer] .layer-name { color: #fff; }
     .layer-card[data-layer] .layer-en   { color: rgba(255,255,255,.82); }
     .layer-card[data-layer] .layer-desc { color: rgba(255,255,255,.78); }
@@ -2889,7 +2915,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     /* ── RESPONSIVE ──────────────────────────────── */
     @media (max-width: 1400px) {
       .sec-hero, .sec-skeep-in,
-      .sec-summary, .sec-agent-hero, .sec-agent-detail,
+      .sec-summary, .sec-agent-hero,
       .sec-system-intro, .sec-system-diagram, .sec-layers,
       .sec-packet-intro, .sec-packet-qa, .sec-skeepables-intro,
       .sec-ux-intro, .sec-ux-stage, footer {
@@ -2948,7 +2974,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     }
     @media (max-width: 768px) {
       .sec-hero, .sec-skeep-in,
-      .sec-summary, .sec-agent-hero, .sec-agent-detail,
+      .sec-summary, .sec-agent-hero,
       .sec-system-intro, .sec-system-diagram, .sec-layers,
       .sec-packet-intro, .sec-packet-qa, .sec-skeepables-intro,
       .sec-ux-intro, .sec-ux-stage, footer {
@@ -3155,13 +3181,19 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
 
   // 최종 화면으로의 전환을 천천히 (native smooth보다 훨씬 완만하게)
   function slowScrollBy(dist, duration) {
+    const root = document.documentElement;
     const startY = window.scrollY;
     const t0 = performance.now();
+    root.classList.add('sk-programmatic-scroll');
     (function step(now) {
       const k = Math.min(1, (now - t0) / duration);
       const e = k; // 선형(가속 없이 일정 속도) — 중간 가속으로 "슉" 넘어가던 현상 제거
       window.scrollTo(0, startY + dist * e);
-      if (k < 1) requestAnimationFrame(step);
+      if (k < 1) {
+        requestAnimationFrame(step);
+      } else {
+        root.classList.remove('sk-programmatic-scroll');
+      }
     })(t0);
   }
 
@@ -3180,6 +3212,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       t1.style.setProperty('--t1-rise', '0px');   // 상승 제거 — 제자리 고정 (단위 필수: calc 유효)
       t1.classList.remove('sk-anim');               // 이제부터 스크롤 중 transform 지연 방지
       sticky.classList.remove('sk-risen');
+      sticky.classList.add('sk-scroll-transition'); // 이후 clip-path는 스크롤 rAF 한 곳에서만 보간
       locked = false;
       slowScrollBy(window.innerHeight * 1.7, 900);    // 홀딩 구간 추가 단축
     }, 0);   // 대기 없이 즉시 전환 → eee가 멈추는 지점 없이 바로 모프로 흐름
@@ -3213,13 +3246,14 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
           setPhotoReveal(count);
           if (count === RISE_AT) rise();
           if (count === RING_AT) ringUp();   // e가 9개일 때 도넛 등장
-          if (count >= FADE_AT) t1.style.opacity = Math.max(0, 1 - (count - FADE_AT) * 0.09).toFixed(3);   // 19개부터 점점 연해짐
-          // 리빌 완료(TRIGGER_AT)에서 e 성장을 멈춘다 → 텍스트가 오른쪽으로 계속 뻗어나가는(슉) 현상 제거
+          // 몰핑 시작(finishing) 후엔 updateSkipTransition이 t1 opacity를 소유 → 여기서 건드리지 않음
+          if (!finishing && count >= FADE_AT) t1.style.opacity = Math.max(0, 1 - (count - FADE_AT) * 0.09).toFixed(3);
+          // 리빌 완료(TRIGGER_AT)에서 몰핑을 시작하되 e 성장은 멈추지 않는다
+          // → e가 계속 늘어나는 상태에서 흩어지며 몰핑 (멈춰있는 홀드 구간 제거)
           if (!triggered && count >= TRIGGER_AT) {
             triggered = true;
             window.clearTimeout(safety);
-            window.clearInterval(iv);   // 더 이상 늘어나지 않고 제자리 고정
-            finish();
+            finish();   // clearInterval 하지 않음 → 늘어나는 중에 몰핑
           }
           if (count >= MAXE) window.clearInterval(iv);
         }, 95);   // 더 천천히 늘어남 (e 성장 + 사진 리빌 속도)
@@ -3290,8 +3324,14 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
           <p class="agent-sub-line">환경 사이를 스스로 이동하며 사용자의 목적 달성을 돕는 에이전트</p>
         </div>
         <div class="pills-row">
-          <button class="pill-sm" type="button" data-agent-tab="principles">Principles</button>
-          <button class="pill-sm dim" type="button" data-agent-tab="questions">Questions</button>
+          <button class="pill-sm" type="button" data-agent-tab="principles">
+            <span class="pill-num">01</span>
+            <span class="pill-label">Principles</span>
+          </button>
+          <button class="pill-sm dim" type="button" data-agent-tab="questions">
+            <span class="pill-num">02</span>
+            <span class="pill-label">Questions</span>
+          </button>
         </div>
       </div>
       <div class="agent-q-col agent-view-hidden" data-agent-questions>
@@ -3737,12 +3777,12 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
   </div>
 </div>
 <style>
-  .wm-band { position: relative; width: 100%; height: clamp(620px, 70vh, 780px); overflow: visible; }
+  .wm-band { position: relative; width: 100%; height: clamp(700px, 80vh, 900px); overflow: visible; }
   .wm-stage {
     position: absolute; inset: 0;
     display: grid;
     place-items: start center;
-    padding-top: clamp(20px, 2.5vw, 40px);
+    padding-top: clamp(48px, 4vw, 64px);
     background: #fff;
     color: #111;
     font-family: "Helvetica Neue", Helvetica, Arial, "Pretendard", sans-serif;
@@ -3750,7 +3790,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
   }
   /* Sticker Peel — Originkit interaction */
   .wm-peel-grid {
-    width: min(84vw, 1440px);
+    width: min(79vw, 1480px);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: clamp(24px, 2.25vw, 44px);
@@ -3837,16 +3877,16 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
   }
   /* 흩뿌린(회전 + 상하 오프셋) 배치 — SERVICE / PRODUCT / SPACE (타겟 배치) */
   .wm-peel-grid .wm-peel-card:nth-child(1),
-  .wm-peel-grid .wm-peel-card:nth-child(1).is-ready { transform: translateY(84px) rotate(-30deg); }
+  .wm-peel-grid .wm-peel-card:nth-child(1).is-ready { transform: translate(-10px, 130px) rotate(24deg); }
   .wm-peel-grid .wm-peel-card:nth-child(2),
-  .wm-peel-grid .wm-peel-card:nth-child(2).is-ready { transform: translateY(-48px) rotate(-5deg); }
+  .wm-peel-grid .wm-peel-card:nth-child(2).is-ready { transform: translate(-16px, -34px) rotate(0deg); }
   .wm-peel-grid .wm-peel-card:nth-child(3),
-  .wm-peel-grid .wm-peel-card:nth-child(3).is-ready { transform: translateY(44px) rotate(-27deg); }
+  .wm-peel-grid .wm-peel-card:nth-child(3).is-ready { transform: translate(0px, 52px) rotate(22deg); }
   .wm-peel-card.is-peel-pending,
   .wm-peel-card.is-initializing-peel { opacity: 0; }
   .wm-peel-card.is-webgl-ready {
     background-image: none !important;
-    background-color: #fff;
+    background-color: transparent;
   }
   .wm-peel-card.is-webgl-ready::before,
   .wm-peel-card.is-webgl-ready .wm-peel-fallback-copy { opacity: 0; }
@@ -3870,6 +3910,10 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       grid-template-columns: 1fr;
       gap: 24px;
       transform: translateY(-36px);
+    }
+    .wm-peel-grid .wm-peel-card:nth-child(n),
+    .wm-peel-grid .wm-peel-card:nth-child(n).is-ready {
+      transform: none;
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -4879,14 +4923,17 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       skipTransitionSticky.style.setProperty('--skip-p', progress.toFixed(4));
       window.__skipP = progress; // 3D 링 배경이 중앙정렬 정도를 읽음
       // ── Text Morph (progress 기반 → 영상과 완전 동기) ──
-      const o1 = Math.max(0, Math.min(1, progress / 0.55));           // t1(eee) 흩어짐: 0 → 0.55
-      const o2 = Math.max(0, Math.min(1, (progress - 0.08) / 0.47));  // t2(skip) 맺힘: 0.08 → 0.55
-      const videoOpacity = Math.max(0, Math.min(1, (progress - 0.15) / 0.4));
+      // 최종 문장으로 바뀌는 시작은 늦추고, 실제 몰핑 구간은 짧게 압축한다.
+      const o1 = Math.max(0, Math.min(1, (progress - 0.10) / 0.20));  // t1(eee) 흩어짐: 0.10 → 0.30
+      const o2 = Math.max(0, Math.min(1, (progress - 0.12) / 0.18));  // t2(skip) 맺힘: 0.12 → 0.30
+      // 영화 장면도 너무 일찍 덮이지 않도록 시작만 늦추고 짧게 페이드한다.
+      const videoOpacity = Math.max(0, Math.min(1, (progress - 0.16) / 0.14));
 
-      // 영상이 완전히 나타나는 0.55에 텍스트 몰핑도 끝내 마지막 장면은 원래 글꼴로 보여준다.
+      // 텍스트 몰핑은 0.30에서 끝내고 마지막 장면은 원래 글꼴로 보여준다.
       if (progress > 0) {
-        const ex = Math.min(1, progress / 0.4);
-        const clip = 'inset(' + (30 * (1 - ex)).toFixed(1) + '% 0%)';
+        const ex = Math.min(1, progress / 0.30);
+        // 소수점 한 자리 반올림으로 생기던 미세한 계단 현상을 줄인다.
+        const clip = 'inset(' + (30 * (1 - ex)).toFixed(3) + '% 0%)';
         if (skipPhoto) skipPhoto.style.clipPath = clip;
         if (skipVideo) { skipVideo.style.clipPath = clip; skipVideo.style.opacity = videoOpacity.toFixed(3); }
       } else if (skipVideo) {
