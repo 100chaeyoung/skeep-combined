@@ -559,7 +559,9 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
     /* ── SUMMARY ROW (label + desc) ──────────────── */
     .sec-summary {
       background: #fff;
-      width: 100%; padding: clamp(56px, 8vw, 116px) var(--edge-padding);
+      width: 100%;
+      padding: clamp(500px, 56vh, 860px) var(--edge-padding) clamp(56px, 8vw, 116px);
+      position: relative; z-index: 1;
       border-top: none;
     }
     .summary-row {
@@ -3777,7 +3779,7 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
   </div>
 </div>
 <style>
-  .wm-band { position: relative; width: 100%; height: clamp(700px, 80vh, 900px); overflow: visible; }
+  .wm-band { position: relative; width: 100%; height: clamp(700px, 80vh, 900px); overflow: visible; z-index: 2; }
   .wm-stage {
     position: absolute; inset: 0;
     display: grid;
@@ -4126,15 +4128,18 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
   function tan(s){ const [a0,b0]=P0(),[a1,b1]=P1(),[a2,b2]=P2(),u=1-s;
     return Math.atan2(2*u*(b1-b0)+2*s*(b2-b1), 2*u*(a1-a0)+2*s*(a2-a1)); }
 
-  const COLORS=[[255,18,113],[255,218,71],[195,231,121],[112,219,240]];
-  function gcol(u){
-    u=Math.max(0,Math.min(1,u))*(COLORS.length-1);
-    const i=Math.min(COLORS.length-2,Math.floor(u)),f=u-i,a=COLORS[i],b=COLORS[i+1];
-    return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];
-  }
+  // UX Logic 카드의 활성 색을 같은 순서로 사용합니다.
+  const COLORS=[
+    [251,110,156], // 새겨듣다  #FB6E9C
+    [105,230,255], // 스며들다  #69E6FF
+    [255,245,104], // 조율하다  #FFF568
+    [159,235,118], // 빌려쓰다  #9FEB76
+    [213,110,251], // 지켜주다  #D56EFB
+    [255,151,82],  // 기억하다  #FF9752
+  ];
   const rgba=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
 
-  const TRAIL=9, GAP=0.082, PASS=2.7, CYCLE=3.9, FLIPS=3.4;
+  const TRAIL=COLORS.length, GAP=0.082, PASS=2.7, CYCLE=3.9, FLIPS=3.4;
 
   function frame(t){
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
@@ -4149,7 +4154,8 @@ body.hero-float-ready:not(.hero-intro-unlocked) .pill-arrow-2 {
       const fade=1-k/TRAIL;
       const alpha=0.55+0.45*fade;
       const scale=0.62+0.38*fade;
-      const col=gcol(k/(TRAIL-1));
+      // 진행 방향(왼쪽 → 오른쪽)이 카드 1번 → 6번 색 순서가 되도록 매핑합니다.
+      const col=COLORS[TRAIL-1-k];
       ctx.save();
       ctx.translate(x,y); ctx.rotate(ang); ctx.scale(scale,scale);
       ctx.beginPath(); ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);
